@@ -46,11 +46,6 @@ async function run() {
     const usersCollection = client.db("music-warehouse-DB").collection("users");
     const classCollection = client.db("music-warehouse-DB").collection("class");
 
-    app.get("/all-course", async (req, res) => {
-      const course  = await courseCollection.find().toArray();
-      res.send({technologies});
-    });
-
     //GENERATE JWT TOKEN
     app.post("/jwt", async (req, res) => {
       const body = req.body;
@@ -84,6 +79,23 @@ async function run() {
     //GET all USERS
     app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
       const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+
+    //Get route for instructors
+    app.get('/users/:userRole', async (req, res) => {
+      const userRole = req.params.userRole;
+      console.log(userRole)
+      const filter = { userRole: userRole};
+      const result = await usersCollection.find(filter).toArray();
+      res.send(result);
+    });
+
+    app.get('/class/:approval', async (req, res) => {
+      const approval = req.params.approval;
+      console.log(approval)
+      const filter = { approval: approval};
+      const result = await classCollection.find(filter).toArray();
       res.send(result);
     });
 
@@ -192,7 +204,9 @@ async function run() {
         return res.send(existingUser);
       }
       const result = await usersCollection.insertOne(user);
-      res.send(result);
+      if(result.insertedId){
+        res.send(user);
+      }
     });
 
     //UPDATE SINGLE CLASS
@@ -208,6 +222,22 @@ async function run() {
           classAvailableSeats: body.classAvailableSeats,
           classPrice: body.classPrice,
         },
+      };
+      const result = await classCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+
+    app.put("/class/admin/:id",verifyJWT,verifyAdmin,async (req, res) => {
+      const id = req.params.id;
+      const body = req.body;
+      console.log(body);
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          adminFeedback : req.body.adminFeedback,
+          approval: 'rejected'
+        }
       };
       const result = await classCollection.updateOne(filter, updateDoc);
       res.send(result);
