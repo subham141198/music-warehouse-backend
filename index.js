@@ -4,6 +4,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const port = process.env.PORT || 5000;
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 
 const app = express();
 app.use(express.json());
@@ -100,11 +101,13 @@ async function run() {
     });
 
     //GET all CLASS for ADMIN
-    app.get('/class/admin', verifyJWT, verifyAdmin, async (req, res) => {
+    app.get('/classes/admin', verifyJWT, verifyAdmin, async (req, res) => {
       const result = await classCollection.find().toArray();
       res.send(result);
     });
-    app.get('/class/instructor', verifyJWT, verifyInstructor, async (req, res) => {
+
+
+    app.get('/classes/instructor', verifyJWT, verifyInstructor, async (req, res) => {
       const result = await classCollection.find().toArray();
       res.send(result);
     });
@@ -192,6 +195,9 @@ async function run() {
       res.send(result);
     })
 
+
+
+
     //POST on USERS
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -227,6 +233,21 @@ async function run() {
       res.send(result);
     });
 
+    app.put("/student/selectedclass/:id",verifyJWT,async (req, res) => {
+      const id = req.params.id;
+      const body = req.body;
+      console.log(body,id);
+      const filter = { userID: body.userID };
+      const updateDoc = {
+        $addToSet: {
+          "userClasses.selected": {
+            $each: [id]
+          }
+        }
+      };
+      const result = await usersCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
 
     app.put("/class/admin/:id",verifyJWT,verifyAdmin,async (req, res) => {
       const id = req.params.id;
@@ -243,7 +264,20 @@ async function run() {
       res.send(result);
     });
 
+    //pPAYMENT INTENT
+    app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
 
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    })
 
     app.get("/my-cart", verifyJWT, async (req, res) => {
       const myEmail = req.query.email;
