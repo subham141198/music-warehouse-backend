@@ -92,6 +92,14 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/classes/:selectedClass', async (req, res) => {
+      const selectedClass = req.params.selectedClass;
+      console.log(selectedClass)
+       const filter = { _id: new ObjectId(selectedClass)};
+       const result = await classCollection.find(filter).toArray();
+       res.send(result);
+    });
+
     app.get('/class/:approval', async (req, res) => {
       const approval = req.params.approval;
       console.log(approval)
@@ -106,6 +114,37 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/classes/admin', verifyJWT, verifyAdmin, async (req, res) => {
+      const result = await classCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.get('/classescount', async (req, res) => {
+      const query = { approval: "accepted" }
+      const result = await classCollection.find(query).toArray()
+      const classCount = result.length
+      res.send({classCount});
+    });
+    app.get('/studentcount', async (req, res) => {
+      const query = { userRole: "student" }
+      const result = await usersCollection.find(query).toArray()
+      const studentCount = result.length
+      res.send({studentCount});
+    });
+
+    app.get('/instructorcount', async (req, res) => {
+      const query = { userRole: "instructor" }
+      const result = await usersCollection.find(query).toArray()
+      const instructorCount = result.length
+      res.send({instructorCount});
+    });
+
+    app.get('/classes/admin', async (req, res) => {
+      const result = await classCollection.find().toArray();
+      res.send(result);
+    });
+
+   ;
 
     app.get('/classes/instructor', verifyJWT, verifyInstructor, async (req, res) => {
       const result = await classCollection.find().toArray();
@@ -141,7 +180,7 @@ async function run() {
     })
 
     //ADD NEW CLASS BY INSTRUCTOR
-    app.post('/class', verifyJWT, verifyInstructor, async (req, res) => {
+    app.post('/classes', verifyJWT, verifyInstructor, async (req, res) => {
       const newItem = req.body;
       const result = await classCollection.insertOne(newItem)
       res.send(result);
@@ -196,8 +235,6 @@ async function run() {
     })
 
 
-
-
     //POST on USERS
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -214,6 +251,21 @@ async function run() {
         res.send(user);
       }
     });
+
+    app.get('/users/student/selectedclass/:uid', verifyJWT, async (req, res) => {
+      const userID = req.params.uid;
+      const query = { userID: userID };
+      const user = await usersCollection.findOne(query);
+      if (user) {
+        const classIDs = user.userClasses?.selected || [];
+        const objectIDs = classIDs.map(id => new ObjectId(id));
+        const classDetails = await classCollection.find({ _id: { $in: objectIDs }}).toArray();
+        return res.send(classDetails);
+      }
+      res.send("No classes selected");
+    });
+
+
 
     //UPDATE SINGLE CLASS
     app.put("/class/instructor/:id",verifyJWT,async (req, res) => {
@@ -264,7 +316,7 @@ async function run() {
       res.send(result);
     });
 
-    //pPAYMENT INTENT
+    //PAYMENT INTENT
     app.post('/create-payment-intent', verifyJWT, async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
