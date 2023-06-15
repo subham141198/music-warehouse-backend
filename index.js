@@ -4,7 +4,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const port = process.env.PORT || 5000;
-const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
+// const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 
 const app = express();
 app.use(express.json());
@@ -114,11 +114,6 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/classes/admin', verifyJWT, verifyAdmin, async (req, res) => {
-      const result = await classCollection.find().toArray();
-      res.send(result);
-    });
-
     app.get('/classescount', async (req, res) => {
       const query = { approval: "accepted" }
       const result = await classCollection.find(query).toArray()
@@ -139,10 +134,7 @@ async function run() {
       res.send({instructorCount});
     });
 
-    app.get('/classes/admin', async (req, res) => {
-      const result = await classCollection.find().toArray();
-      res.send(result);
-    });
+
 
    ;
 
@@ -301,7 +293,7 @@ async function run() {
       res.send(result);
     });
 
-    app.put("/class/admin/:id",verifyJWT,verifyAdmin,async (req, res) => {
+    app.put("/class/rejectbyadmin/:id",verifyJWT,verifyAdmin,async (req, res) => {
       const id = req.params.id;
       const body = req.body;
       console.log(body);
@@ -317,63 +309,63 @@ async function run() {
     });
 
     //PAYMENT INTENT
-    app.post('/create-payment-intent', verifyJWT, async (req, res) => {
-      const { price } = req.body;
-      const amount = parseInt(price * 100);
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: amount,
-        currency: 'usd',
-        payment_method_types: ['card']
-      });
+    // app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+    //   const { price } = req.body;
+    //   const amount = parseInt(price * 100);
+    //   const paymentIntent = await stripe.paymentIntents.create({
+    //     amount: amount,
+    //     currency: 'usd',
+    //     payment_method_types: ['card']
+    //   });
 
-      res.send({
-        clientSecret: paymentIntent.client_secret
-      })
-    })
+    //   res.send({
+    //     clientSecret: paymentIntent.client_secret
+    //   })
+    // })
 
-    app.get("/my-cart", verifyJWT, async (req, res) => {
-      const myEmail = req.query.email;
-      if (!myEmail) {
-        return res
-          .status(403)
-          .send({ error: "no info of the customer found!" });
-      }
-      if (req.decoded.email !== myEmail) {
-        return res.status(403).send({ error: "Unauthorized access!" });
-      }
-      const queryFilter = { purchasedBy: myEmail };
-      // const myCart = await cartCollection.find({purchasedBy:myEmail}).toArray();
-      const myCart = await cartCollection
-        .aggregate([
-          { $match: queryFilter },
-          {
-            $facet: {
-              documents: [{ $skip: 0 }, { $limit: 10 }], // Example: find the first 10 documents
-              totalCount: [{ $count: "count" }],
-            },
-          },
-        ])
-        .toArray();
-      res.send(myCart);
-    });
+    // app.get("/my-cart", verifyJWT, async (req, res) => {
+    //   const myEmail = req.query.email;
+    //   if (!myEmail) {
+    //     return res
+    //       .status(403)
+    //       .send({ error: "no info of the customer found!" });
+    //   }
+    //   if (req.decoded.email !== myEmail) {
+    //     return res.status(403).send({ error: "Unauthorized access!" });
+    //   }
+    //   const queryFilter = { purchasedBy: myEmail };
+    //   // const myCart = await cartCollection.find({purchasedBy:myEmail}).toArray();
+    //   const myCart = await cartCollection
+    //     .aggregate([
+    //       { $match: queryFilter },
+    //       {
+    //         $facet: {
+    //           documents: [{ $skip: 0 }, { $limit: 10 }], // Example: find the first 10 documents
+    //           totalCount: [{ $count: "count" }],
+    //         },
+    //       },
+    //     ])
+    //     .toArray();
+    //   res.send(myCart);
+    // });
     // Get all the orders.
-    app.get("/all-orders", async (req, res) => {
-      const queryFilter = {};
-      // const myCart = await cartCollection.find({purchasedBy:myEmail}).toArray();
-      // const total = await cartCollection.countDocuments();
-      const orders = await cartCollection
-        .aggregate([
-          { $match: queryFilter },
-          {
-            $facet: {
-              documents: [{ $skip: 0 }, { $limit: 10 }], // Example: find the first 10 documents
-              totalCount: [{ $count: "count" }],
-            },
-          },
-        ])
-        .toArray();
-      res.send(orders);
-    });
+    // app.get("/all-orders", async (req, res) => {
+    //   const queryFilter = {};
+    //   // const myCart = await cartCollection.find({purchasedBy:myEmail}).toArray();
+    //   // const total = await cartCollection.countDocuments();
+    //   const orders = await cartCollection
+    //     .aggregate([
+    //       { $match: queryFilter },
+    //       {
+    //         $facet: {
+    //           documents: [{ $skip: 0 }, { $limit: 10 }], // Example: find the first 10 documents
+    //           totalCount: [{ $count: "count" }],
+    //         },
+    //       },
+    //     ])
+    //     .toArray();
+    //   res.send(orders);
+    // });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
